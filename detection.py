@@ -19,6 +19,8 @@ from dataclasses import dataclass
 
 from preprocessing import estimate_stroke_width
 
+FRAGMENT_MERGE_STROKE_MULTIPLIER = 2  # increase if symbols are being split; decrease if separate symbols are merging
+
 @dataclass
 class Candidate:
     """A region of the image that may contain a circuit symbol."""
@@ -94,17 +96,40 @@ def _remove_wires(
     wire_mask = np.zeros_like(binary)
     erasure_thickness = _estimate_erasure_thickness(binary)
 
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-            dx = x2 - x1
-            dy = y2 - y1
-            angle = abs(np.degrees(np.arctan2(dy, dx))) % 180.0
-            near_horizontal = angle <= line_angle_tolerance_deg or angle >= (180.0 - line_angle_tolerance_deg)
-            near_vertical = abs(angle - 90.0) <= line_angle_tolerance_deg
-            if length >= min_line_length and (near_horizontal or near_vertical):
-                cv2.line(wire_mask, (x1, y1), (x2, y2), 255, erasure_thickness)
+    if lines is None:
+        return cv2.subtract(binary, wire_mask), lines, wire_mask
+
+    # Separate segments by orientation and compute per-direction length threshold
+    h_lengths = []
+    v_lengths = []
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1))) % 180.0
+        near_horizontal = angle <= line_angle_tolerance_deg or angle >= (180.0 - line_angle_tolerance_deg)
+        near_vertical = abs(angle - 90.0) <= line_angle_tolerance_deg
+        if near_horizontal:
+            h_lengths.append(length)
+        elif near_vertical:
+            v_lengths.append(length)
+
+    h_min = float(np.percentile(h_lengths, 50)) if h_lengths else min_line_length
+    v_min = float(np.percentile(v_lengths, 50)) if v_lengths else min_line_length
+
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1))) % 180.0
+        near_horizontal = angle <= line_angle_tolerance_deg or angle >= (180.0 - line_angle_tolerance_deg)
+        near_vertical = abs(angle - 90.0) <= line_angle_tolerance_deg
+
+        if near_horizontal and length < h_min:
+            continue
+        if near_vertical and length < v_min:
+            continue
+
+        if near_horizontal or near_vertical:
+            cv2.line(wire_mask, (x1, y1), (x2, y2), 255, erasure_thickness)
 
     binary_no_wires = cv2.subtract(binary, wire_mask)
     return binary_no_wires, lines, wire_mask
@@ -119,7 +144,7 @@ def _fragment_merge(binary_no_wires: np.ndarray, merge_gap_px: int | None) -> np
     """
     sw = estimate_stroke_width(binary_no_wires)
     if merge_gap_px is None:
-        merge_gap_px = max(1, int(sw))  # conservative default
+        merge_gap_px = max(1, int(sw * FRAGMENT_MERGE_STROKE_MULTIPLIER))
     k = 2 * int(merge_gap_px) + 1
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
     binary_for_cc = cv2.morphologyEx(binary_no_wires, cv2.MORPH_CLOSE, kernel)
