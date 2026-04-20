@@ -13,6 +13,7 @@ from classification import (
     classify_all,
     CLASSES,
 )
+from augment import augment_dataset
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -100,6 +101,15 @@ def run_training(labeled_data_dir: str = "labeled_data", model_path: str = "mode
     train_svm(X, y, model_path=model_path)
     print("\nTraining complete.")
 
+# ──────────────────────────────────────────────────────────────────────────────
+# MODE: AUGMENT
+# ──────────────────────────────────────────────────────────────────────────────
+
+def run_augmentation(labeled_data_dir: str = "labeled_data"):
+    """Generates augmented variants of all labeled crops to expand the training set."""
+    print("Augmenting dataset...")
+    augment_dataset(labeled_data_dir, target_per_class=60)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # MODE: RUN
@@ -167,7 +177,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Circuit symbol detector")
     parser.add_argument(
         "--mode",
-        choices=["debug_preprocess", "debug_detect", "label", "train", "run"],
+        choices=["debug_preprocess", "debug_detect", "label", "train", "augment", "run"],
         required=True,
     )
     parser.add_argument("--image",      default=None,         help="Path to image")
@@ -192,6 +202,9 @@ if __name__ == "__main__":
 
     elif args.mode == "train":
         run_training()
+
+    elif args.mode == "augment":
+        run_augmentation()
 
     elif args.mode == "run":
         if not args.image:
