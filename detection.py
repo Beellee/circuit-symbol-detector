@@ -19,7 +19,8 @@ from dataclasses import dataclass
 
 from preprocessing import estimate_stroke_width
 
-FRAGMENT_MERGE_STROKE_MULTIPLIER = 2  # increase if symbols are being split; decrease if separate symbols are merging
+FRAGMENT_MERGE_STROKE_MULTIPLIER = 1.5  # increase if symbols are being split; decrease if separate symbols are merging
+WIRE_PERCENTILE_FOR_MIN_LENGTH = 15  # Hough lines shorter than this (relative to other lines in the image) are more likely to be components (like capacitor or dc voltage) than wires
 
 @dataclass
 class Candidate:
@@ -113,8 +114,8 @@ def _remove_wires(
         elif near_vertical:
             v_lengths.append(length)
 
-    h_min = float(np.percentile(h_lengths, 50)) if h_lengths else min_line_length
-    v_min = float(np.percentile(v_lengths, 50)) if v_lengths else min_line_length
+    h_min = float(np.percentile(h_lengths, WIRE_PERCENTILE_FOR_MIN_LENGTH)) if h_lengths else min_line_length
+    v_min = float(np.percentile(v_lengths, WIRE_PERCENTILE_FOR_MIN_LENGTH)) if v_lengths else min_line_length
 
     for line in lines:
         x1, y1, x2, y2 = line[0]
