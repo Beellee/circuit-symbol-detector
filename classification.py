@@ -22,6 +22,8 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 
 # The 5 target symbols + garbage class
 CLASSES = ["capacitor", "inductor", "resistor", "dc_source", "ac_source", "garbage"]
@@ -253,7 +255,15 @@ def train_svm(X: np.ndarray, y: list, model_path: str = "model.pkl") -> Pipeline
         ))
     ])
 
-    pipeline.fit(X, y_encoded)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
+    )
+
+    pipeline.fit(X_train, y_train)
+
+    y_pred = pipeline.predict(X_test)
+    print("\nValidation report:")
+    print(classification_report(y_test, y_pred, target_names=le.classes_))
 
     # Save model + label encoder together
     with open(model_path, 'wb') as f:
