@@ -189,7 +189,7 @@ def load_labeled_data(data_dir: str = "labeled_data"):
         X : numpy array of shape (n_samples, n_features)
         y : list of string labels
     """
-    X, y = [], []
+    X, y, is_original = [], [], []
     data_path = Path(data_dir)
 
     for cls in CLASSES:
@@ -211,15 +211,16 @@ def load_labeled_data(data_dir: str = "labeled_data"):
             features = extract_hog(img)
             X.append(features)
             y.append(cls)
+            is_original.append("aug" not in img_path.stem)
 
-    return np.array(X), y
+    return np.array(X), y, np.array(is_original)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SVM TRAINING
 # ──────────────────────────────────────────────────────────────────────────────
 
-def train_svm(X: np.ndarray, y: list, model_path: str = "model.pkl") -> Pipeline:
+def train_svm(X: np.ndarray, y: list, is_original: np.ndarray, model_path: str = "model.pkl") -> Pipeline:
     """
     Trains an SVM classifier on HOG features.
 
@@ -255,14 +256,22 @@ def train_svm(X: np.ndarray, y: list, model_path: str = "model.pkl") -> Pipeline
         ))
     ])
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
+    X_orig = X[is_original]
+    y_orig = y_encoded[is_original]
+    X_aug = X[~is_original]
+    y_aug = y_encoded[~is_original]
+
+    X_orig_train, X_test, y_orig_train, y_test = train_test_split(
+        X_orig, y_orig, test_size=0.2, random_state=42, stratify=y_orig
     )
+
+    X_train = np.concatenate([X_orig_train, X_aug])
+    y_train = np.concatenate([y_orig_train, y_aug])
 
     pipeline.fit(X_train, y_train)
 
     y_pred = pipeline.predict(X_test)
-    print("\nValidation report:")
+    print("\nValidation report (originals only — honest evaluation):")
     print(classification_report(y_test, y_pred, target_names=le.classes_))
 
     # Save model + label encoder together

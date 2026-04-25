@@ -83,7 +83,7 @@ def run_labeling(images_dir: str, labeled_data_dir: str = "labeled_data"):
 def run_training(labeled_data_dir: str = "labeled_data", model_path: str = "model.pkl"):
     """Loads labeled crops, extracts HOG features, and trains the SVM."""
     print("Loading labeled data...")
-    X, y = load_labeled_data(labeled_data_dir)
+    X, y, is_original = load_labeled_data(labeled_data_dir)
 
     if len(X) == 0:
         print("No labeled data found. Run --mode label first.")
@@ -98,7 +98,7 @@ def run_training(labeled_data_dir: str = "labeled_data", model_path: str = "mode
         print("\nNeed at least 2 classes to train. Label more examples.")
         return
 
-    train_svm(X, y, model_path=model_path)
+    train_svm(X, y, is_original, model_path=model_path)
     print("\nTraining complete.")
 
 # ──────────────────────────────────────────────────────────────────────────────
