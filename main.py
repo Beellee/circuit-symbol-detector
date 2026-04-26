@@ -14,6 +14,7 @@ from classification import (
     CLASSES,
 )
 from augment import augment_dataset
+from synthetic import generate_synthetic
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -102,6 +103,16 @@ def run_training(labeled_data_dir: str = "labeled_data", model_path: str = "mode
     print("\nTraining complete.")
 
 # ──────────────────────────────────────────────────────────────────────────────
+# MODE: SYNTHETIC
+# ──────────────────────────────────────────────────────────────────────────────
+
+def run_synthetic(labeled_data_dir: str = "labeled_data", n_per_class: int = 30):
+    """Generates synthetic training examples for each symbol class."""
+    print("Generating synthetic data...")
+    generate_synthetic(n_per_class=n_per_class, output_dir=labeled_data_dir)
+    print("Done")
+
+# ──────────────────────────────────────────────────────────────────────────────
 # MODE: AUGMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -177,7 +188,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Circuit symbol detector")
     parser.add_argument(
         "--mode",
-        choices=["debug_preprocess", "debug_detect", "label", "train", "augment", "run"],
+        choices=["debug_preprocess", "debug_detect", "label", "train", "synthetic", "augment", "run"],
         required=True,
     )
     parser.add_argument("--image",      default=None,         help="Path to image")
@@ -202,6 +213,9 @@ if __name__ == "__main__":
 
     elif args.mode == "train":
         run_training()
+
+    elif args.mode == "synthetic":
+        run_synthetic()
 
     elif args.mode == "augment":
         run_augmentation()
