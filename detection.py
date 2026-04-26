@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 from preprocessing import estimate_stroke_width
 
-FRAGMENT_MERGE_STROKE_MULTIPLIER = 1.5  # increase if symbols are being split; decrease if separate symbols are merging
+FRAGMENT_MERGE_STROKE_MULTIPLIER = 2  # increase if symbols are being split; decrease if separate symbols are merging
 WIRE_PERCENTILE_FOR_MIN_LENGTH = 15  # Hough lines shorter than this (relative to other lines in the image) are more likely to be components (like capacitor or dc voltage) than wires
 
 @dataclass
