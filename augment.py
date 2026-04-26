@@ -196,6 +196,9 @@ def augment_dataset(data_dir: str = "labeled_data", target_per_class: int = 150)
                     break
                 if count_this_original >= per_original:
                     break
+                # skip images that are nearly all white (no dark stroke content)
+                if np.mean(variant) > 245:  # almost entirely white
+                    continue
                 save_path = cls_path / f"aug_{counter:04d}.png"
                 cv2.imwrite(str(save_path), variant)
                 counter += 1
