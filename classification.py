@@ -132,8 +132,14 @@ def extract_hog(crop: np.ndarray) -> np.ndarray:
     Returns:
         1D numpy array — the HOG feature vector
     """
-    # 1. Resize
-    resized = cv2.resize(crop, CROP_SIZE, interpolation=cv2.INTER_AREA)
+    # 1. Resize keeping aspect ratio
+    h, w = crop.shape
+    size = max(h, w)
+    padded = np.zeros((size, size), dtype=np.uint8)
+    y_off = (size - h) // 2
+    x_off = (size - w) // 2
+    padded[y_off:y_off+h, x_off:x_off+w] = crop
+    resized = cv2.resize(padded, CROP_SIZE, interpolation=cv2.INTER_AREA)
 
     # 2. Contrast normalization
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
@@ -272,7 +278,10 @@ def train_svm(X: np.ndarray, y: list, is_original: np.ndarray, model_path: str =
 
     y_pred = pipeline.predict(X_test)
     print("\nValidation report (originals only — honest evaluation):")
-    print(classification_report(y_test, y_pred, target_names=le.classes_))
+
+    # get the actual class names present in the test set
+    classes_in_test = [le.classes_[i] for i in sorted(set(y_test))]
+    print(classification_report(y_test, y_pred, target_names=classes_in_test))
 
     # Save model + label encoder together
     with open(model_path, 'wb') as f:
@@ -331,7 +340,7 @@ def classify_all(
     candidates,
     pipeline: Pipeline,
     label_encoder: LabelEncoder,
-    confidence_threshold: float = 0.5,
+    confidence_threshold: float = 0.3,
 ) -> list[dict]:
     """
     Runs classification on all candidates and returns structured results.
