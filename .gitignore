@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+data/
+labeled_data/
+model.pkl
+test_images/
